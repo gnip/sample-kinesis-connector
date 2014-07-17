@@ -1,0 +1,8 @@
+*.iml
+*.swp
+.idea
+config.properties
+logs/
+target/
+.DS_Store
+.bundle

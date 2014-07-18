@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.Integer;
 import java.util.Properties;
 import java.util.TreeSet;
 
@@ -83,6 +84,14 @@ public class Environment implements AWSCredentialsProvider {
 
   public int shardCount() {
     return Integer.parseInt(props.getProperty("aws.kinesis.shard.count"));
+  }
+
+  public int getMessageQueueSize() {
+    return Integer.parseInt(props.getProperty("message.queue.size"));
+  }
+
+  public int getBytesQueueSize() {
+    return Integer.parseInt(props.getProperty("byte.queue.size"));
   }
 
   @Override

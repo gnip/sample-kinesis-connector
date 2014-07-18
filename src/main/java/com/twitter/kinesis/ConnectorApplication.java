@@ -36,7 +36,7 @@ public class ConnectorApplication {
   private void configure() {
     environment.configure();
 
-    LinkedBlockingQueue<String> downstream = new LinkedBlockingQueue<>(10000);
+    LinkedBlockingQueue<String> downstream = new LinkedBlockingQueue<String>(10000);
 
     client = new ClientBuilder()
             .name("PowerTrackClient-01")

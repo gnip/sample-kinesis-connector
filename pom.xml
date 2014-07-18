@@ -7,14 +7,19 @@
     <groupId>connector</groupId>
     <artifactId>connector</artifactId>
     <version>1.0</version>
-    <name>Gnip Kinesis Connector Application</name>
-    <description>A thin connector to the Gnip API that produces to AWS Kinesis</description>
+    <name>Twitter Kinesis Connector Application</name>
+    <description>A thin connector to the Twitter API that produces to AWS Kinesis</description>
 
     <dependencies>
         <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.17</version>
+        </dependency>
+        <dependency>
             <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <version>1.7.2</version>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>1.6.1</version>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
@@ -83,9 +88,14 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>com.twitter.connector.kinesis.ConnectorApplication</mainClass>
+                            <mainClass>com.twitter.com.ConnectorApplication</mainClass>
                         </manifest>
                     </archive>
+                    <descriptors>
+                        <descriptor>src/main/assembly/stage-jar.xml</descriptor>
+                        <descriptor>src/main/assembly/stage-ami.xml</descriptor>
+                        <descriptor>src/main/assembly/stage-ami-dev.xml</descriptor>
+                    </descriptors>
                 </configuration>
                 <executions>
                     <execution>
@@ -99,6 +109,7 @@
             </plugin>
         </plugins>
     </build>
+
     <repositories>
         <repository>
             <id>central</id>

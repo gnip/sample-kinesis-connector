@@ -3,10 +3,10 @@ package com.twitter.kinesis;
 import com.amazonaws.services.kinesis.AmazonKinesisClient;
 import com.amazonaws.services.kinesis.model.PutRecordRequest;
 import com.amazonaws.services.kinesis.model.PutRecordResult;
-import com.google.common.util.concurrent.RateLimiter;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.twitter.kinesis.utils.Environment;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.Random;
@@ -20,8 +20,7 @@ public class KinesisProducer implements Runnable {
   private final AmazonKinesisClient kinesisClient;
   private final String kinesisStreamName;
   private final Random rnd = new Random();
-  private final Logger logger = Logger.getLogger(KinesisProducer.class);
-  private final RateLimiter rateLimiter;
+  private final Logger logger = LoggerFactory.getLogger(KinesisProducer.class);
   private final ExecutorService executer;
   private BlockingQueue<String> upstream;
 
@@ -29,10 +28,8 @@ public class KinesisProducer implements Runnable {
     this.kinesisStreamName = environment.kinesisStreamName();
     this.upstream = upstream;
     this.kinesisClient = new AmazonKinesisClient(environment);
-    this.rateLimiter = RateLimiter.create(environment.getRateLimit());
 
     ThreadFactory rateTrackerThreadFactory = new ThreadFactoryBuilder()
-            .setDaemon(true)
             .setNameFormat("kinesis-producer-thread-%d")
             .build();
 
@@ -57,7 +54,6 @@ public class KinesisProducer implements Runnable {
         Thread.sleep(sleepTime);
       }
       PutRecordResult putRecordResult = kinesisClient.putRecord(putRecordRequest);
-      onSuccess();
     } catch (Exception t) {
       onError(putRecordRequest, retryCount, t);
     }
@@ -70,10 +66,6 @@ public class KinesisProducer implements Runnable {
       logger.warn("Error sending message, retrying", e);
       submitPutRequest(putRecordRequest, 500 * retryCount, retryCount + 1);
     }
-  }
-
-  public void onSuccess() {
-    rateLimiter.acquire();
   }
 
   public void start() {

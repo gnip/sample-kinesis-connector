@@ -8,11 +8,13 @@ import com.twitter.hbc.core.endpoint.RealTimeEnterpriseStreamingEndpoint;
 import com.twitter.hbc.core.processor.LineStringProcessor;
 import com.twitter.hbc.httpclient.auth.BasicAuth;
 import com.twitter.kinesis.utils.Environment;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class ConnectorApplication {
-
+  private static final Logger logger = LoggerFactory.getLogger(ConnectorApplication.class);
   private Client client;
   private Environment environment;
   private KinesisProducer producer;
@@ -22,9 +24,13 @@ public class ConnectorApplication {
   }
 
   public static void main(String[] args) {
-    ConnectorApplication application = new ConnectorApplication();
-    application.configure();
-    application.start();
+    logger.info("Starting Connector Application...");
+    try {
+      ConnectorApplication application = new ConnectorApplication();
+      application.start();
+    } catch (Exception e) {
+      logger.error("Unexpected error occured", e);
+    }
   }
 
   private void configure() {
@@ -33,7 +39,7 @@ public class ConnectorApplication {
     LinkedBlockingQueue<String> downstream = new LinkedBlockingQueue<>(10000);
 
     client = new ClientBuilder()
-            .name("PowerTrackClient-02")
+            .name("PowerTrackClient-01")
             .hosts(Constants.ENTERPRISE_STREAM_HOST)
             .endpoint(endpoint())
             .authentication(auth())
@@ -47,8 +53,13 @@ public class ConnectorApplication {
     return new BasicAuth(this.environment.userName(), this.environment.userPassword());
   }
 
-  private void start() {
+  private void start() throws InterruptedException {
+    configure();
+
+    // Establish a connection
     client.connect();
+
+    // Start the producer
     producer.start();
   }
 

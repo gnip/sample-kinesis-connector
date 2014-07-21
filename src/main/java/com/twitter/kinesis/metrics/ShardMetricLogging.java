@@ -3,11 +3,9 @@ package com.twitter.kinesis.metrics;
 import com.amazonaws.services.kinesis.model.PutRecordResult;
 import com.google.common.collect.ConcurrentHashMultiset;
 import com.google.common.collect.Multiset;
-import com.google.inject.Singleton;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
-@Singleton
 public class ShardMetricLogging implements ShardMetric {
 
     private Multiset<String> shardCounter;

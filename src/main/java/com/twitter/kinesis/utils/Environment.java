@@ -2,17 +2,14 @@ package com.twitter.kinesis.utils;
 
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
-import com.google.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.Integer;
 import java.util.Properties;
 import java.util.TreeSet;
 
-@Singleton
 public class Environment implements AWSCredentialsProvider {
   private static final Logger logger = LoggerFactory.getLogger(Environment.class);
   private static Properties props;
@@ -88,10 +85,6 @@ public class Environment implements AWSCredentialsProvider {
 
   public int getMessageQueueSize() {
     return Integer.parseInt(props.getProperty("message.queue.size"));
-  }
-
-  public int getBytesQueueSize() {
-    return Integer.parseInt(props.getProperty("byte.queue.size"));
   }
 
   @Override

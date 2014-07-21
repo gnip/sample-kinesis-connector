@@ -10,7 +10,8 @@ import com.twitter.kinesis.utils.KinesisStreamBuilder;
 import com.twitter.kinesis.metrics.ShardMetric;
 import com.twitter.kinesis.metrics.SimpleMetric;
 import com.twitter.kinesis.metrics.SimpleMetricManager;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.Random;
@@ -23,7 +24,7 @@ public class KinesisProducer implements Runnable {
   private final AmazonKinesisClient kinesisClient;
   private final String kinesisStreamName;
   private final Random rnd = new Random();
-  private final Logger logger = Logger.getLogger(KinesisProducer.class);
+  private final Logger logger =  LoggerFactory.getLogger(Environment.class);
   private final BlockingQueue<String> upstream;
   private final int kinesisShardCount;
   private final ScheduledExecutorService executor;

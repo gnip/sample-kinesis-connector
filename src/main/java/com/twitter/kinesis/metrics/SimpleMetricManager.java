@@ -1,7 +1,8 @@
 package com.twitter.kinesis.metrics;
 
 import com.google.inject.Singleton;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -10,7 +11,7 @@ import java.util.Map;
 public class SimpleMetricManager {
 
     Map<String, SimpleMetric> map = new HashMap<>();
-    Logger logger = Logger.getLogger(SimpleMetricManager.class);
+    Logger logger = LoggerFactory.getLogger(SimpleMetricManager.class);
 
     public synchronized void report() {
         StringBuilder buf = new StringBuilder();

@@ -1,4 +1,4 @@
-package com.twitter.kinesis.stream;
+package com.twitter.kinesis;
 
 import com.amazonaws.services.kinesis.AmazonKinesisClient;
 import com.amazonaws.services.kinesis.model.PutRecordRequest;
@@ -6,7 +6,6 @@ import com.amazonaws.services.kinesis.model.PutRecordResult;
 import com.amazonaws.services.kinesis.model.ResourceNotFoundException;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.twitter.kinesis.utils.Environment;
-import com.twitter.kinesis.utils.KinesisStreamBuilder;
 import com.twitter.kinesis.metrics.ShardMetric;
 import com.twitter.kinesis.metrics.SimpleMetric;
 import com.twitter.kinesis.metrics.SimpleMetricManager;
@@ -26,7 +25,6 @@ public class KinesisProducer implements Runnable {
   private final Random rnd = new Random();
   private final Logger logger =  LoggerFactory.getLogger(Environment.class);
   private final BlockingQueue<String> upstream;
-  private final int kinesisShardCount;
   private final ScheduledExecutorService executor;
   private ShardMetric shardMetric;
   private SimpleMetric avgPutTime;
@@ -38,12 +36,12 @@ public class KinesisProducer implements Runnable {
           BlockingQueue<String> upstream,
           Environment environment,
           SimpleMetricManager metrics,
-          ShardMetric shardMetric,
-          AmazonKinesisClient client) {
+          AmazonKinesisClient client,
+          String kinesisStreamName,
+          ShardMetric shardMetric) {
     this.upstream = upstream;
+    this.kinesisStreamName = kinesisStreamName;
     this.shardMetric = shardMetric;
-    this.kinesisStreamName = environment.kinesisStreamName();
-    this.kinesisShardCount = environment.shardCount();
     avgPutTime =  metrics.newSimpleMetric("Average Time to Write to Kinesis(ms)");
     batchSize = metrics.newSimpleMetric("Average Message Size to Kinesis (bytes)");
     successCount = metrics.newSimpleCountMetric("Successful writes to Kinesis");
@@ -55,7 +53,6 @@ public class KinesisProducer implements Runnable {
             .build();
 
     this.executor = Executors.newScheduledThreadPool(environment.getProducerThreadCount(), rateTrackerThreadFactory);
-    buildStream();
   }
 
   public void start() {
@@ -108,25 +105,12 @@ public class KinesisProducer implements Runnable {
     shardMetric.track(putRecordResult);
   }
 
-  private void buildStream() {
-    KinesisStreamBuilder builder = new KinesisStreamBuilder();
-    builder.shardCount(kinesisShardCount)
-            .kinesisClient(this.kinesisClient)
-            .streamName(this.kinesisStreamName)
-            .build();
-  }
-
   @Override
   public void run() {
     while (!Thread.interrupted()) {
       try {
-        final String message = upstream.take();
-        executor.submit(new Runnable() {
-          @Override
-          public void run() {
-            sendMessage(message.getBytes());
-          }
-        });
+        String message = upstream.take();
+        sendMessage(message.getBytes());
       } catch (InterruptedException e) {
         logger.warn("Thread Interrupted");
       }

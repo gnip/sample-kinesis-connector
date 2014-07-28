@@ -1,14 +1,12 @@
 package com.twitter.kinesis;
 
 import com.amazonaws.services.kinesis.AmazonKinesisClient;
-import com.amazonaws.services.kinesis.model.PutRecordRequest;
-import com.amazonaws.services.kinesis.model.PutRecordResult;
-import com.amazonaws.services.kinesis.model.ResourceNotFoundException;
+import com.amazonaws.services.kinesis.model.*;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.twitter.kinesis.utils.Environment;
 import com.twitter.kinesis.metrics.ShardMetric;
 import com.twitter.kinesis.metrics.SimpleMetric;
 import com.twitter.kinesis.metrics.SimpleMetricManager;
+import com.twitter.kinesis.utils.Environment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +21,7 @@ public class KinesisProducer implements Runnable {
   private final AmazonKinesisClient kinesisClient;
   private final String kinesisStreamName;
   private final Random rnd = new Random();
-  private final Logger logger =  LoggerFactory.getLogger(Environment.class);
+  private final Logger logger = LoggerFactory.getLogger(Environment.class);
   private final BlockingQueue<String> upstream;
   private final ScheduledExecutorService executor;
   private ShardMetric shardMetric;
@@ -42,7 +40,7 @@ public class KinesisProducer implements Runnable {
     this.upstream = upstream;
     this.kinesisStreamName = kinesisStreamName;
     this.shardMetric = shardMetric;
-    avgPutTime =  metrics.newSimpleMetric("Average Time to Write to Kinesis(ms)");
+    avgPutTime = metrics.newSimpleMetric("Average Time to Write to Kinesis(ms)");
     batchSize = metrics.newSimpleMetric("Average Message Size to Kinesis (bytes)");
     successCount = metrics.newSimpleCountMetric("Successful writes to Kinesis");
     droppedMessageCount = metrics.newSimpleCountMetric("Failed writes to Kinesis");
@@ -95,12 +93,12 @@ public class KinesisProducer implements Runnable {
       droppedMessageCount.mark(1);
     } else {
       logger.warn("Error sending message, retrying", e);
-      submitPutRequest(putRecordRequest, 500 * retryCount, retryCount +1);
+      submitPutRequest(putRecordRequest, 500 * retryCount, retryCount + 1);
     }
   }
 
   public void onSuccess(PutRecordRequest putRecordRequest, PutRecordResult putRecordResult) {
-    batchSize.mark( putRecordRequest.getData().array().length);
+    batchSize.mark(putRecordRequest.getData().array().length);
     successCount.mark(1);
     shardMetric.track(putRecordResult);
   }
@@ -114,6 +112,98 @@ public class KinesisProducer implements Runnable {
       } catch (InterruptedException e) {
         logger.warn("Thread Interrupted");
       }
+    }
+  }
+
+  public static class Builder {
+
+    private final Random rnd = new Random();
+    private final Logger logger = LoggerFactory.getLogger(Environment.class);
+    private BlockingQueue<String> upstream;
+    private AmazonKinesisClient kinesisClient;
+    private SimpleMetricManager metricManager;
+    private ShardMetric shardMetric;
+    private String kinesisStreamName;
+    private Environment environment;
+    private int shardCount;
+
+    public Builder kinesisClient(AmazonKinesisClient client) {
+      this.kinesisClient = client;
+      return this;
+    }
+
+    public Builder streamName(String name) {
+      this.kinesisStreamName = name;
+      return this;
+    }
+
+    public Builder shardCount(int shardCount) {
+      this.shardCount = shardCount;
+      return this;
+    }
+
+    public Builder upstream(BlockingQueue<String> upstream) {
+      this.upstream = upstream;
+      return this;
+    }
+
+    public Builder environment(Environment environment) {
+      this.environment = environment;
+      return this;
+    }
+
+    public Builder simpleMetricManager(SimpleMetricManager metricManager) {
+      this.metricManager = metricManager;
+      return this;
+    }
+
+    public Builder shardMetric(ShardMetric shardMetric) {
+      this.shardMetric = shardMetric;
+      return this;
+    }
+
+    public KinesisProducer build() {
+      // TODO: tolerate null attributes
+      ListStreamsResult streamList = this.kinesisClient.listStreams();
+      if (streamList.getStreamNames().contains(this.kinesisStreamName) && streamIsActive(this.kinesisStreamName)) {
+        this.logger.info(String.format("Found a kinesis stream in this account matching \"%s\".", this.kinesisStreamName));
+      } else {
+        CreateStreamRequest streamRequest = new CreateStreamRequest()
+                .withStreamName(this.kinesisStreamName)
+                .withShardCount(this.shardCount);
+        this.logger.info(String.format("Attempting to create kinesis stream \"%s\" with %d shards",
+                this.kinesisStreamName,
+                streamRequest.getShardCount()));
+        this.kinesisClient.createStream(streamRequest);
+        this.logger.info("Waiting for stream to become active...");
+        boolean active = false;
+
+        while (!active) {
+          if (streamIsActive(this.kinesisStreamName)) {
+            active = true;
+          } else {
+            try {
+              Thread.sleep(1000);
+            } catch (InterruptedException ignore) {
+            }
+          }
+        }
+        this.logger.info("Stream is active.");
+      }
+      KinesisProducer producer = new KinesisProducer(
+              this.upstream,
+              this.environment,
+              this.metricManager,
+              this.kinesisClient,
+              this.kinesisStreamName,
+              this.shardMetric
+      );
+      return producer;
+    }
+
+    private boolean streamIsActive(String streamName) {
+      DescribeStreamResult streamResult = this.kinesisClient.describeStream(streamName);
+      return streamResult.getStreamDescription().getStreamStatus().equals("ACTIVE");
     }
   }
 }

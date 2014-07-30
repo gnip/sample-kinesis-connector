@@ -18,6 +18,7 @@ import com.twitter.kinesis.metrics.SimpleMetricManager;
 import com.twitter.kinesis.utils.Environment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class ConnectorApplication {
@@ -44,7 +45,7 @@ public class ConnectorApplication {
   private void configure() {
     this.simpleMetricManager = new SimpleMetricManager();
     this.environment.configure();
-    LinkedBlockingQueue<String> downstream = new LinkedBlockingQueue<>(10000);
+    LinkedBlockingQueue<String> downstream = new LinkedBlockingQueue<String>(10000);
     ShardMetricLogging shardMetric = new ShardMetricLogging();
     AWSCredentialsProvider credentialsProvider = new AWSCredentialsProviderChain(new InstanceProfileCredentialsProvider(), this.environment);
 
@@ -56,7 +57,7 @@ public class ConnectorApplication {
             .processor(new LineStringProcessor(downstream))
             .build();
 
-    this.producer = new KinesisProducer.Builder()
+    new KinesisProducer.Builder()
             .environment(this.environment)
             .kinesisClient(new AmazonKinesisClient(credentialsProvider))
             .shardCount(this.environment.shardCount())
@@ -64,7 +65,7 @@ public class ConnectorApplication {
             .upstream(downstream)
             .simpleMetricManager(this.simpleMetricManager)
             .shardMetric(shardMetric)
-            .build();
+            .buildAndStart();
 
     configureHBCStatsTrackerMetric();
   }
@@ -85,9 +86,6 @@ public class ConnectorApplication {
 
     // Establish a connection
     client.connect();
-
-    // Start the producer
-    producer.start();
   }
 
   private EnterpriseStreamingEndpoint endpoint() {

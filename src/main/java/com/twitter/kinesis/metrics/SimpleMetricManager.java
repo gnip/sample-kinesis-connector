@@ -10,7 +10,7 @@ import java.util.Map;
 @Singleton
 public class SimpleMetricManager {
 
-    Map<String, SimpleMetric> map = new HashMap<>();
+    Map<String, SimpleMetric> map = new HashMap<String, SimpleMetric>();
     Logger logger = LoggerFactory.getLogger(SimpleMetricManager.class);
 
     public synchronized void report() {

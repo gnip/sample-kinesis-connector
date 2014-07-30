@@ -14,7 +14,6 @@ import java.nio.ByteBuffer;
 import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 
 public class KinesisProducer implements Runnable {
@@ -23,7 +22,6 @@ public class KinesisProducer implements Runnable {
   private final Random rnd = new Random();
   private final Logger logger = LoggerFactory.getLogger(Environment.class);
   private final BlockingQueue<String> upstream;
-  private final ScheduledExecutorService executor;
   private ShardMetric shardMetric;
   private SimpleMetric avgPutTime;
   private SimpleMetric batchSize;
@@ -45,17 +43,6 @@ public class KinesisProducer implements Runnable {
     successCount = metrics.newSimpleCountMetric("Successful writes to Kinesis");
     droppedMessageCount = metrics.newSimpleCountMetric("Failed writes to Kinesis");
     kinesisClient = client;
-
-    ThreadFactory rateTrackerThreadFactory = new ThreadFactoryBuilder()
-            .setNameFormat("kinesis-producer-thread-%d")
-            .build();
-
-    this.executor = Executors.newScheduledThreadPool(environment.getProducerThreadCount(), rateTrackerThreadFactory);
-  }
-
-  public void start() {
-
-    executor.execute(this);
   }
 
   private void sendMessage(final byte[] bytes) {
@@ -162,7 +149,7 @@ public class KinesisProducer implements Runnable {
       return this;
     }
 
-    public KinesisProducer build() {
+    public void buildAndStart() {
       // TODO: tolerate null attributes
       ListStreamsResult streamList = this.kinesisClient.listStreams();
       if (streamList.getStreamNames().contains(this.kinesisStreamName) && streamIsActive(this.kinesisStreamName)) {
@@ -190,15 +177,23 @@ public class KinesisProducer implements Runnable {
         }
         this.logger.info("Stream is active.");
       }
-      KinesisProducer producer = new KinesisProducer(
-              this.upstream,
-              this.environment,
-              this.metricManager,
-              this.kinesisClient,
-              this.kinesisStreamName,
-              this.shardMetric
-      );
-      return producer;
+
+      ThreadFactory threadFactory = new ThreadFactoryBuilder()
+              .setNameFormat("kinesis-producer-thread-%d")
+              .build();
+
+      for (int i = 0; i < environment.getProducerThreadCount(); i++) {
+        KinesisProducer producer = new KinesisProducer(
+                this.upstream,
+                this.environment,
+                this.metricManager,
+                this.kinesisClient,
+                this.kinesisStreamName,
+                this.shardMetric
+        );
+        Executors.newSingleThreadExecutor(threadFactory).execute(producer);
+      }
+
     }
 
     private boolean streamIsActive(String streamName) {

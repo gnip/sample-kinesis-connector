@@ -4,9 +4,9 @@ import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.Integer;
 import java.util.Properties;
 import java.util.TreeSet;
 
@@ -28,7 +28,7 @@ public class Environment implements AWSCredentialsProvider {
   }
 
   public void logProperties() {
-    TreeSet<String> keys = new TreeSet<>(props.stringPropertyNames());
+    TreeSet<String> keys = new TreeSet<String>(props.stringPropertyNames());
 
     for (String key : keys) {
       logger.info(key + ": " + props.get(key));

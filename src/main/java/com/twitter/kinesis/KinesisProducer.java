@@ -1,5 +1,6 @@
 package com.twitter.kinesis;
 
+import com.amazonaws.services.kinesis.model.ProvisionedThroughputExceededException;
 import com.amazonaws.services.kinesis.AmazonKinesisClient;
 import com.amazonaws.services.kinesis.model.*;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -78,8 +79,11 @@ public class KinesisProducer implements Runnable {
     if (retryCount > 3) {
       logger.error("Failed retry 3 times... dropping message.", e);
       droppedMessageCount.mark(1);
+    } else if (e instanceof ProvisionedThroughputExceededException) {
+      logger.warn("Rate limited exceeded trying to put request, retrying");
+      submitPutRequest(putRecordRequest, 500 * retryCount, retryCount + 1);
     } else {
-      logger.warn("Error sending message, retrying");
+      logger.warn("Received error: " + e.getClass().toString() + ", retrying");
       submitPutRequest(putRecordRequest, 500 * retryCount, retryCount + 1);
     }
   }

@@ -79,7 +79,7 @@ public class KinesisProducer implements Runnable {
       logger.error("Failed retry 3 times... dropping message.", e);
       droppedMessageCount.mark(1);
     } else {
-      logger.warn("Error sending message, retrying", e);
+      logger.warn("Error sending message, retrying");
       submitPutRequest(putRecordRequest, 500 * retryCount, retryCount + 1);
     }
   }

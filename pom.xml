@@ -76,7 +76,7 @@
                     </descriptorRefs>
                     <archive>
                         <manifest>
-                            <mainClass>com.twitter.connector.kinesis.ConnectorApplication</mainClass>
+                            <mainClass>com.twitter.kinesis.ConnectorApplication</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

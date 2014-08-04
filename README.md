@@ -21,9 +21,9 @@ This is an example app that takes in a Gnip Power Track and streams it into [AWS
     gnip.product=YOUR_GNIP_PRODUCT
     gnip.stream.label=YOUR_GNIP_STREAM_LABEL
 
-    aws.access.key=AKIAJGUWFRW4X7KVBCCQ
-    aws.secret.key=XVvjwCv3KRt9LAnjQl8/79ykwb9x6OKP6834cifz
-    aws.kinesis.stream.name=isaacs-prod
+    aws.access.key=YOUR_AWS_ACCESS_LEY
+    aws.secret.key=YOUR_AWS_SECRET_ACCEES_KEY
+    aws.kinesis.stream.name=YOUR_DESIRED_KINESIS_STREAM_LABEL
 
     #Application configuration parameters-
     ########################
